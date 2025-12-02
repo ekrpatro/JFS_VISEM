@@ -41,6 +41,26 @@ input[type="text"] {
     border-radius: 5px;
 }
 
+.result-box {
+    border: 1px solid #e1e7f5;
+    background: #f8fbff;
+    padding: 14px;
+    margin-top: 12px;
+    border-radius: 6px;
+}
+.result-box h3 {
+    margin-top: 0;
+    margin-bottom: 8px;
+    color: #2b3b6f;
+}
+.result-box ul {
+    margin: 6px 0 12px 20px;
+}
+.result-box .error {
+    color: #b00020;
+    font-weight: 600;
+}
+
 button {
     width: 100%;
     padding: 10px;

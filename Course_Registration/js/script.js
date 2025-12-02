@@ -19,7 +19,6 @@ subjects.forEach(item => {
 // Optional: form submit
 document.getElementById("regForm").addEventListener("submit", function(e){
     e.preventDefault();
-      e.preventDefault();
 
     let selectedSubjects = [];
     let totalFee = 0;
@@ -35,17 +34,35 @@ document.getElementById("regForm").addEventListener("submit", function(e){
         }
     });
 
+    let resultDiv = document.getElementById("result");
+
     if (selectedSubjects.length === 0) {
-        alert("Please select at least one subject.");
+        resultDiv.style.display = "block";
+        resultDiv.innerHTML = '<p class="error">Please select at least one subject.</p>';
         return;
     }
 
     let studentName = document.getElementById("name").value;
 
-    let message =
-        "Student Name: " + studentName + "\n\n" +
-        "Selected Subjects:\n- " + selectedSubjects.join("\n- ") + "\n\n" +
-        "Total Fee: ₹" + totalFee;
+    // Validate student name
+    if (!studentName || studentName.trim() === "") {
+        resultDiv.style.display = "block";
+        resultDiv.innerHTML = '<p class="error">Please enter the student name.</p>';
+        return;
+    }
 
-    alert(message);
+    // Build HTML for result
+    let html = '<h3>Registration Details</h3>';
+    html += '<p><strong>Student Name:</strong> ' + studentName + '</p>';
+    html += '<p><strong>Selected Subjects:</strong></p><ul>';
+    selectedSubjects.forEach(sub => {
+        html += '<li>' + sub + '</li>';
+    });
+    html += '</ul>';
+    html += '<p><strong>Total Fee:</strong> ₹' + totalFee + '</p>';
+
+    // Show in the result div
+    resultDiv.style.display = "block";
+    resultDiv.innerHTML = html;
+    resultDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 });
