@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Read CSV and Display Table</title>
+    <style>
+        table {
+            width: 80%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Upload CSV File</h2>
+
+<input type="file" id="csvFile" accept=".csv">
+
+<table id="outputTable"></table>
+
+<script>
+    document.getElementById("csvFile").addEventListener("change", function () {
+        const file = this.files[0];
+        const reader = new FileReader();
+
+        reader.onload = function (e) {
+            const text = e.target.result;
+            displayCSV(text);
+        };
+
+        reader.readAsText(file);
+    });
+
+    function displayCSV(csvText) {
+        const rows = csvText.trim().split("\n").map(row => row.split(","));
+
+        let tableHTML = "<tr>";
+        rows[0].forEach(header => tableHTML += `<th>${header}</th>`);
+        tableHTML += "</tr>";
+
+        for (let i = 1; i < rows.length; i++) {
+            tableHTML += "<tr>";
+            rows[i].forEach(col => tableHTML += `<td>${col}</td>`);
+            tableHTML += "</tr>";
+        }
+
+        document.getElementById("outputTable").innerHTML = tableHTML;
+    }
+</script>
+
+</body>
+</html>
