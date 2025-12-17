@@ -2,13 +2,13 @@
 <html>
 <head>
     <meta charset="utf-8" />
-    <title>Faculty Timetable — Batch View</title>
+    <title>Faculty Timetable — Search by Name or ID</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
         body { font-family: Arial, sans-serif; padding: 18px; }
         .controls { margin-bottom: 14px; }
-        input[type="text"] { padding: 6px; width: 320px; margin-right: 8px; }
-        button { padding: 6px 10px; margin-right:6px; }
+        input[type="text"] { padding: 6px; width: 360px; margin-right: 8px; }
+        button { padding: 6px 10px; }
         .batch-title { font-weight: bold; font-size: 18px; margin-top: 20px; margin-bottom: 6px; }
         table { width: 90%; border-collapse: collapse; margin-bottom: 18px; }
         th, td { border: 1px solid #000; padding: 8px; text-align: center; vertical-align: middle; }
@@ -19,23 +19,25 @@
 </head>
 <body>
 
-<h2>Faculty Timetable — Batch View</h2>
+<h2>Faculty Timetable — Search by Name or ID</h2>
 
 <div class="controls">
     <label for="csvFile">CSV (fallback): </label>
     <input type="file" id="csvFile" accept=".csv" />
     <br><br>
-    <label for="facultyInput">Faculty name: </label>
-    <input type="text" id="facultyInput" placeholder="Enter faculty name (e.g., XYZ)" />
+    <label for="queryInput">Faculty name or ID: </label>
+    <input type="text" id="queryInput" placeholder="Enter faculty name or id (e.g., XYZ or 12345)" />
     <button id="showBtn">Show Schedule</button>
-    <div class="note">Auto-loads <code>VI SEM HAPPENING OF THE DAY-INFO.csv</code> when served over HTTP. Otherwise upload CSV. Matching is case-insensitive and supports partial matches.</div>
+    <div class="note">The page attempts to auto-load <code>VI SEM HAPPENING OF THE DAY-INFO.csv</code> when served over HTTP. Otherwise upload CSV. Enter either a faculty name or their ID in the single box — the search will match by name or any ID-like column.</div>
 </div>
 
 <div id="tables"></div>
 
 <script>
+/* Keep parsed rows here */
 let parsedRows = [];
 
+/* Try to auto-load the CSV when served over HTTP */
 function tryAutoLoadCSV() {
     const filename = 'VI SEM HAPPENING OF THE DAY-INFO.csv';
     fetch(encodeURI(filename))
@@ -46,7 +48,7 @@ function tryAutoLoadCSV() {
         .then(text => {
             Papa.parse(text, { header: true, skipEmptyLines: true, complete: (res) => {
                 parsedRows = normalizeRows(res.data);
-                document.getElementById('tables').innerHTML = '<div style="color:green">CSV auto-loaded. Enter faculty name and click "Show Schedule".</div>';
+                document.getElementById('tables').innerHTML = '<div style="color:green">CSV auto-loaded. Enter faculty name or id and click "Show Schedule".</div>';
             }});
         })
         .catch(() => {
@@ -54,22 +56,45 @@ function tryAutoLoadCSV() {
         });
 }
 
+/* Normalize rows: trim fields and detect faculty + id-like column */
 function normalizeRows(rows) {
     return rows.map(r => {
-        return {
-            SNO: (r.SNO || r['SNO'] || '').trim(),
-            BATCH: (r.BATCH || r['BATCH'] || '').trim(),
-            DAY: (r.DAY || r['DAY'] || '').trim(),
-            SESSION: (r.SESSION || r['SESSION'] || '').trim(),
-            BRANCHES: (r.BRANCHES || r['BRANCHES'] || '').trim(),
-            TOTAL: (r.TOTAL || r['TOTAL'] || '').trim(),
-            ROOM: (r.ROOM || r['ROOM'] || '').trim(),
-            COURSE: (r.COURSE || r['COURSE'] || '').trim(),
-            FACULTY: (r.FACULTY || r['FACULTY'] || '').trim()
-        };
+        const out = {};
+        // copy/trim keys
+        for (const k in r) {
+            if (!Object.prototype.hasOwnProperty.call(r, k)) continue;
+            out[k.trim()] = (r[k] ?? '').toString().trim();
+        }
+
+        // normalized faculty value
+        out._faculty = (out.FACULTY || out.faculty || '').toString().trim();
+
+        // find an id-like column (common names)
+        let idVal = '';
+        const idCandidates = ['id','faculty_id','facultyid','fid','staff_id','staffid','teacher_id','teacherid','empid','employeeid','sno','SNO'];
+        for (const key of Object.keys(out)) {
+            const kl = key.toLowerCase();
+            if (idCandidates.includes(kl)) {
+                const v = (out[key] ?? '').toString().trim();
+                if (v) { idVal = v; break; }
+            }
+        }
+        // fallback: try any key that looks like 'id' in its name if none found
+        if (!idVal) {
+            for (const key of Object.keys(out)) {
+                if (key.toLowerCase().includes('id') && (out[key] ?? '').toString().trim()) {
+                    idVal = out[key].toString().trim();
+                    break;
+                }
+            }
+        }
+        out._id = idVal;
+
+        return out;
     });
 }
 
+/* File upload parsing fallback */
 document.getElementById('csvFile').addEventListener('change', function () {
     const file = this.files[0];
     if (!file) return;
@@ -78,7 +103,7 @@ document.getElementById('csvFile').addEventListener('change', function () {
         skipEmptyLines: true,
         complete: function (result) {
             parsedRows = normalizeRows(result.data);
-            document.getElementById('tables').innerHTML = '<div style="color:green">CSV loaded. Enter a faculty name and click "Show Schedule".</div>';
+            document.getElementById('tables').innerHTML = '<div style="color:green">CSV loaded. Enter faculty name or id and click "Show Schedule".</div>';
         },
         error: function (err) {
             document.getElementById('tables').innerHTML = '<div style="color:red">Error parsing CSV: ' + escapeHtml(String(err)) + '</div>';
@@ -86,14 +111,14 @@ document.getElementById('csvFile').addEventListener('change', function () {
     });
 });
 
-document.getElementById('showBtn').addEventListener('click', showForFaculty);
-document.getElementById('facultyInput').addEventListener('keypress', function (e) {
-    if (e.key === 'Enter') { e.preventDefault(); showForFaculty(); }
-});
-document.getElementById('printAllBtn').addEventListener('click', printAllShown);
+/* Wire up search */
+document.getElementById('showBtn').addEventListener('click', showForQuery);
+document.getElementById('queryInput').addEventListener('keypress', function (e) { if (e.key === 'Enter') { e.preventDefault(); showForQuery(); } });
 
-function showForFaculty() {
-    const name = document.getElementById('facultyInput').value.trim();
+/* Main search & render function */
+function showForQuery() {
+    const raw = document.getElementById('queryInput').value.trim();
+    const q = raw.toLowerCase();
     const container = document.getElementById('tables');
     container.innerHTML = '';
 
@@ -101,30 +126,39 @@ function showForFaculty() {
         container.innerHTML = '<div class="no-results">Please upload the CSV or serve the folder over HTTP so the CSV can be auto-loaded.</div>';
         return;
     }
-    if (!name) {
-        container.innerHTML = '<div class="no-results">Please enter a faculty name to search.</div>';
+    if (!q) {
+        container.innerHTML = '<div class="no-results">Please enter a faculty name or id to search.</div>';
         return;
     }
 
-    const q = name.toLowerCase();
-    const days = ["MON", "TUE", "WED", "THU", "FRI", "SAT"];
+    // Build by-batch -> day -> {FN, AN}
+    const days = ["MON","TUE","WED","THU","FRI","SAT"];
     const byBatch = {};
 
     parsedRows.forEach(r => {
-        if (!r.BATCH || !r.DAY || !r.SESSION) return;
-        if (!byBatch[r.BATCH]) byBatch[r.BATCH] = {};
-        if (!byBatch[r.BATCH][r.DAY]) byBatch[r.BATCH][r.DAY] = { FN: '', AN: '' };
-        if ((r.FACULTY || '').toLowerCase().includes(q)) {
-            byBatch[r.BATCH][r.DAY][r.SESSION] = `${escapeHtml(r.COURSE)}<br>Room: ${escapeHtml(r.ROOM)}<br>Faculty: ${escapeHtml(r.FACULTY)}`;
-        }
+        const batch = r.BATCH || r.Batch || r.batch || '';
+        const day = r.DAY || r.Day || r.day || '';
+        const session = r.SESSION || r.Session || r.session || '';
+        if (!batch || !day || !session) return;
+
+        // check match: faculty OR id
+        const facultyVal = (r._faculty || '').toString().toLowerCase();
+        const idVal = (r._id || '').toString().toLowerCase();
+
+        if (!(facultyVal.includes(q) || idVal.includes(q))) return;
+
+        if (!byBatch[batch]) byBatch[batch] = {};
+        if (!byBatch[batch][day]) byBatch[batch][day] = { FN: '', AN: '' };
+
+        const course = r.COURSE || r.Course || r.course || '';
+        const room = r.ROOM || r.Room || r.room || '';
+        const facultyOut = r.FACULTY || r.faculty || r._faculty || '';
+        byBatch[batch][day][session] = `${escapeHtml(course)}<br>Room: ${escapeHtml(room)}<br>Faculty: ${escapeHtml(facultyOut)}${r._id ? `<br>ID: ${escapeHtml(r._id)}` : ''}`;
     });
 
-    const visibleBatches = Object.keys(byBatch).filter(batch => {
-        return days.some(day => (byBatch[batch][day] && (byBatch[batch][day].FN || byBatch[batch][day].AN)));
-    });
-
+    const visibleBatches = Object.keys(byBatch).filter(batch => days.some(d => (byBatch[batch][d] && (byBatch[batch][d].FN || byBatch[batch][d].AN))));
     if (!visibleBatches.length) {
-        container.innerHTML = '<div class="no-results">No schedule found for "' + escapeHtml(name) + '".</div>';
+        container.innerHTML = '<div class="no-results">No schedule found for "' + escapeHtml(raw) + '".</div>';
         return;
     }
 
@@ -136,14 +170,7 @@ function showForFaculty() {
         title.className = 'batch-title';
         title.innerHTML = `Batch: ${escapeHtml(batch)}`;
 
-        const btn = document.createElement('button');
-        btn.innerHTML = 'Print This Timetable';
-        btn.style.marginBottom = '8px';
-        const tableId = 'table_' + batch.replace(/[^a-zA-Z0-9\-_]/g, '_');
-        btn.onclick = function () { printTable(tableId, batch); };
-
         const table = document.createElement('table');
-        table.id = tableId;
         let html = '<tr><th>DAY</th><th>FN</th><th rowspan=7>L<br>U<br>N<br>C<br>H</th><th>AN</th></tr>';
         days.forEach(day => {
             const fn = byBatch[batch][day]?.FN || '';
@@ -153,48 +180,23 @@ function showForFaculty() {
         table.innerHTML = html;
 
         wrapper.appendChild(title);
-        wrapper.appendChild(btn);
         wrapper.appendChild(table);
         container.appendChild(wrapper);
     });
 }
 
-function printTable(tableId, batch) {
-    const table = document.getElementById(tableId);
-    if (!table) return;
-    const title = `<h2>Batch: ${escapeHtml(batch)}</h2>`;
-    const css = '<style>table{width:100%;border-collapse:collapse}th,td{border:1px solid #000;padding:8px;text-align:center;}th{background:lightblue}</style>';
-    const w = window.open('', '', 'width=900,height=600');
-    w.document.write('<html><head><title>Print</title>' + css + '</head><body>' + title + table.outerHTML + '</body></html>');
-    w.document.close();
-    w.print();
-}
-
-function printAllShown() {
-    const container = document.getElementById('tables');
-    if (!container.innerHTML.trim()) {
-        alert('No timetables to print. Run a faculty search first.');
-        return;
-    }
-    const css = '<style>table{width:100%;border-collapse:collapse;margin-bottom:12px}th,td{border:1px solid #000;padding:8px;text-align:center;}th{background:lightblue}</style>';
-    const w = window.open('', '', 'width=1000,height=800');
-    w.document.write('<html><head><title>Print All Timetables</title>' + css + '</head><body>');
-    w.document.write(container.innerHTML);
-    w.document.write('</body></html>');
-    w.document.close();
-    w.print();
-}
-
+/* Simple HTML escape */
 function escapeHtml(str) {
-    if (!str && str !== 0) return '';
+    if (str === undefined || str === null) return '';
     return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;')
+        .replace(/'/g,'&#039;');
 }
 
+/* Try auto-load on open */
 tryAutoLoadCSV();
 </script>
 
