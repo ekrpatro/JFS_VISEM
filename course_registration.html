@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Course Registration Form</title>
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f7f7f7;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 520px;
+      margin: 30px auto;
+      background: #fff;
+      border-radius: 6px;
+      padding: 20px 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    h2 {
+      margin-top: 0;
+    }
+
+    label {
+      display: block;
+      margin-top: 12px;
+      font-weight: 600;
+    }
+
+    .subject-list label {
+      display: block;
+      margin: 6px 0;
+      font-weight: 400;
+      cursor: pointer;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 8px 10px;
+      margin-top: 6px;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    .total-box {
+      margin-top: 12px;
+      padding: 10px;
+      background: #f1f1f1;
+      border-radius: 4px;
+      font-weight: bold;
+    }
+
+    button[type="submit"] {
+      margin-top: 14px;
+      padding: 8px 14px;
+      cursor: pointer;
+      border: none;
+      background: #0078d4;
+      color: white;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    #result {
+      margin-top: 24px;
+      padding: 12px;
+      border-radius: 4px;
+      display: none;
+      border: 1px solid rgba(0,0,0,0.06);
+    }
+
+    #result.success {
+      background: #e6ffea;
+      color: #064c20;
+    }
+
+    #result.warning {
+      background: #fff0f0;
+      color: #5d1414;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Course Registration Form</h2>
+
+    <form id="regForm" novalidate>
+      <label for="name">Student Name:</label>
+      <input type="text" id="name" placeholder="Enter your name" required>
+
+      <label>Select Subjects:</label>
+      <div class="subject-list">
+        <label><input type="checkbox" class="subject" value="1000"> Data Structures (₹1000)</label>
+        <label><input type="checkbox" class="subject" value="1200"> Operating Systems (₹1200)</label>
+        <label><input type="checkbox" class="subject" value="1500"> DBMS (₹1500)</label>
+        <label><input type="checkbox" class="subject" value="1800"> Computer Networks (₹1800)</label>
+        <label><input type="checkbox" class="subject" value="2000"> Java Programming (₹2000)</label>
+      </div>
+
+      <div class="total-box">
+        Total Registration Fee: <span id="total">₹0</span>
+      </div>
+
+      <button type="submit">Submit Registration</button>
+    </form>
+
+    <div id="result" aria-live="polite"></div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const totalEl = document.getElementById('total');
+      const checkboxes = document.querySelectorAll('.subject');
+      const form = document.getElementById('regForm');
+      const resultEl = document.getElementById('result');
+      const nameInput = document.getElementById('name');
+
+      function updateTotal() {
+        const sum = Array.from(checkboxes).reduce((acc, cb) => acc + (cb.checked ? Number(cb.value) : 0), 0);
+        totalEl.textContent = '₹' + sum;
+      }
+
+      checkboxes.forEach(cb => cb.addEventListener('change', updateTotal));
+      updateTotal();
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const name = nameInput.value.trim();
+        if (!name) {
+          showMessage('Please enter your name before registering.', 'warning');
+          nameInput.focus();
+          return;
+        }
+
+        const selectedSubjects = Array.from(checkboxes)
+          .filter(cb => cb.checked)
+          .map(cb => cb.parentElement.textContent.trim().replace(/\s+/g, ' '));
+
+        const total = Array.from(checkboxes).reduce((acc, cb) => acc + (cb.checked ? Number(cb.value) : 0), 0);
+
+        const subjectsText = selectedSubjects.length ? escapeHtml(selectedSubjects.join(', ')) : 'None selected';
+        const message =
+          '<strong>Registration Successful</strong><br>' +
+          'Name: ' + escapeHtml(name) + '<br>' +
+          'Subjects: ' + subjectsText + '<br>' +
+          'Total Fee: ₹' + total + '<br><br>' +
+          '<strong>Kindly pay the total amount to Dipalyes.</strong>';
+
+        showMessage(message, 'success');
+
+        // If you want to clear the form after showing the message, uncomment:
+        // form.reset();
+        // updateTotal();
+      });
+
+      function showMessage(html, type) {
+        resultEl.className = '';
+        resultEl.classList.add(type === 'success' ? 'success' : 'warning');
+        resultEl.innerHTML = html;
+        resultEl.style.display = 'block';
+        resultEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+
+      function escapeHtml(s) {
+        return s.replace(/[&<>"']/g, function (m) {
+          return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];
+        });
+      }
+    });
+  </script>
+</body>
+</html>
