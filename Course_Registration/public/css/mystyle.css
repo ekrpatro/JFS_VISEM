@@ -1,0 +1,65 @@
+ <style>
+        body {
+            font-family: Arial;
+            margin: 40px;
+        }
+
+        #searchBox {
+            width: 300px;
+            height: 35px;
+            font-size: 16px;
+            padding-left: 10px;
+            margin-bottom: 12px;
+        }
+
+        .container {
+            display: flex;
+            margin-top: 30px;
+            gap: 40px;
+        }
+
+        .photo-box, .info-box {
+            width: 45%;
+            padding: 20px;
+            border: 2px solid #333;
+            border-radius: 10px;
+            min-height: 260px;
+        }
+
+        #photo {
+            width: 220px;
+            height: 220px;
+            border-radius: 25%;
+            object-fit: cover;
+            border: 2px solid #444;
+            display: none;
+        }
+		.photo-james {
+			border: 6px solid gold !important; 
+			padding: 5px;
+			border-radius: 0 !important;   /* Makes it RECTANGLE */
+			width: 240px !important;
+			height: 260px !important;
+		}
+
+		.photo-james-blue {
+			width: 240px !important;
+			height: 260px !important;
+			border: 6px solid #1e90ff !important;
+			padding: 5px;
+			border-radius: 0 !important;
+			box-shadow: 0 0 20px #1e90ff;
+			animation: jamesBlueGlow 1s infinite alternate ease-in-out;
+		}
+
+		@keyframes jamesBlueGlow {
+			0%   { box-shadow: 0 0 10px #1e90ff; }
+			100% { box-shadow: 0 0 40px #1e90ff, 0 0 80px #00bfff; }
+		}
+
+
+        .title {
+            font-weight: bold;
+            font-size: 18px;
+        }
+    </style>

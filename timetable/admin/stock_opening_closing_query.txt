@@ -1,0 +1,66 @@
+SELECT 
+    M.id,
+    M.itemname,
+    ROUND(COALESCE(SUM(p.purchase_quantity), 0) - COALESCE(SUM(i.issue_quantity), 0), 2) AS opening_balance,
+    COALESCE(k.day_issue, 0) AS day_issue,
+	COALESCE(ps.day_purchase, 0) AS day_purchase,
+    ROUND(
+        COALESCE(SUM(p.purchase_quantity), 0) - 
+        COALESCE(SUM(i.issue_quantity), 0) - 
+        COALESCE(k.day_issue, 0) + COALESCE(ps.day_purchase, 0), 
+        2
+    ) AS closing_balance
+FROM 
+    item M
+LEFT JOIN (
+    SELECT 
+        pi.itemid,
+        SUM(pi.quantity) AS purchase_quantity,
+        SUM(pi.quantity * pi.rate) AS purchase_cost
+    FROM 
+        purchaseitem pi
+    WHERE 
+        pi.purchase_date < '2024-07-24'
+    GROUP BY 
+        pi.itemid
+) p ON p.itemid = M.id
+LEFT JOIN (
+    SELECT 
+        ii.itemid,
+        SUM(ii.quantity) AS issue_quantity,
+        SUM(ii.quantity * ii.unit_price) AS issue_cost
+    FROM 
+        issueitem ii
+    WHERE 
+        ii.issue_date < '2024-07-24'
+    GROUP BY 
+        ii.itemid
+) i ON i.itemid = M.id
+LEFT JOIN (
+    SELECT 
+        kk.itemid,
+        SUM(kk.quantity) AS day_issue
+    FROM 
+        issueitem kk
+    WHERE 
+        kk.issue_date = '2024-07-24'
+    GROUP BY 
+        kk.itemid
+) k ON M.id = k.itemid
+LEFT JOIN (
+    SELECT 
+        pi.itemid,
+        SUM(pi.quantity) AS day_purchase
+    FROM 
+        purchaseitem pi
+    WHERE 
+        pi.purchase_date = '2024-07-24'
+    GROUP BY 
+        pi.itemid
+) ps ON M.id = ps.itemid
+
+GROUP BY 
+    M.id, M.itemname
+where M.disp_priority > 0
+ORDER BY 
+    M.disp_priority ASC;

@@ -1,0 +1,25 @@
+SELECT 
+    i.issue_date, 	
+    ROUND(SUM(i.quantity * i.unit_price), 2) AS tot_cost,
+    d.total_count,
+    ROUND(SUM(i.quantity * i.unit_price) / d.total_count, 2) AS perhead_cost
+FROM 
+    issueitem i
+INNER JOIN 
+    (
+        SELECT 
+            dining_date, 
+            SUM(boys + girls) AS total_count 
+        FROM 
+            dining_count_status 
+        WHERE 
+            dining_date BETWEEN '2024-08-01' AND '2024-08-31' 
+        GROUP BY 
+            dining_date
+    ) d 
+    ON i.issue_date = d.dining_date
+WHERE 
+    i.issue_date BETWEEN '2024-08-01' AND '2024-08-31' 
+GROUP BY 
+    i.issue_date, d.total_count  
+ORDER BY `i`.`issue_date` ASC

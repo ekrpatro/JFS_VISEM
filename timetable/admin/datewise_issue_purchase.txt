@@ -1,0 +1,42 @@
+SELECT `id`, `itemname`, `brand_name`, `item_category`, `measurement_unit`, `disp_priority` FROM `item` 
+SELECT  `itemid`, `issue_date`, `issue_category`, `quantity`, `unit_price`, `inserted_date` FROM `issueitem` 
+SELECT  `invoice_no`, `seller_id`, `itemid`, `quantity`, `qunit`, `rate`, `runit`, `purchase_date` FROM `purchaseitem` 
+item.id as primary key primary in item table
+issueitem.itemid as foreign key in issueitem
+purchaseitem.itemid as foreign key in  
+ 
+write a query to print issue_date,purchase_date`,purchaseitem.quantity,issueitem.quantity  where item.id=192 date by date
+if any not found print null 
+
+SELECT
+    COALESCE(i.issue_date, p.purchase_date) AS date,
+    p.purchase_date,
+    i.issue_date,
+    COALESCE(p.quantity, 0) AS purchase_quantity,
+    COALESCE(i.quantity, 0) AS issue_quantity
+FROM
+    item it
+LEFT JOIN purchaseitem p ON it.id = p.itemid
+LEFT JOIN issueitem i ON it.id = i.itemid AND p.purchase_date = i.issue_date
+WHERE
+    it.id = 192
+
+UNION
+
+SELECT
+    COALESCE(i.issue_date, p.purchase_date) AS date,
+    p.purchase_date,
+    i.issue_date,
+    COALESCE(p.quantity, 0) AS purchase_quantity,
+    COALESCE(i.quantity, 0) AS issue_quantity
+FROM
+    item it
+RIGHT JOIN purchaseitem p ON it.id = p.itemid
+RIGHT JOIN issueitem i ON it.id = i.itemid AND p.purchase_date = i.issue_date
+WHERE
+    it.id = 192
+
+ORDER BY
+    date;
+
+

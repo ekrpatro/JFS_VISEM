@@ -1,0 +1,47 @@
+.container {
+    max-width: 930px;
+    margin: 50px auto;
+    padding: 20px;
+    border: 35px solid #ccc;
+    border-radius: 5px;
+    text-align: center; /* Center align contents */
+}
+
+.logo {
+    display: block;
+    width: 100%; /* Make it responsive */
+    max-width: 100%; /* Ensure it does not exceed the container */
+    height: auto; /* Maintain aspect ratio */
+    margin-bottom: 10px; /* Add spacing below */
+    object-fit: contain; /* Ensure it fits without distortion */
+}
+
+
+label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+input[type="text"],
+input[type="date"],
+input[type="time"],
+textarea {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #45a049;
+}

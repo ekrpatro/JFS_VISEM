@@ -1,0 +1,359 @@
+1. What is Apache Maven primarily used for?
+
+A. Code compilation only
+B. Project management and build automation
+C. Database management
+D. Version control
+
+✅ Answer: B
+
+
+
+
+
+2. Which file is the core configuration file in Maven?
+
+A. build.xml
+B. pom.xml
+C. maven.config
+D. settings.xml
+
+✅ Answer: B
+
+
+
+3. What does POM stand for in Maven?
+
+A. Project Object Model
+B. Program Object Model
+C. Project Oriented Model
+D. Program Oriented Model
+
+✅ Answer: A
+
+
+4. Which command is used to compile a Maven project?
+
+A. mvn build
+B. mvn compile
+C. mvn install
+D. mvn test
+
+✅ Answer: B
+
+
+
+
+
+
+
+5. Which Maven lifecycle phase runs the unit tests?
+
+A. validate
+B. compile
+C. test
+D. package
+
+✅ Answer: C
+
+
+
+
+
+6. Where are Maven dependencies downloaded and stored locally?
+
+A. Project folder
+B. /usr/lib/maven
+C. Local repository
+D. Remote repository
+
+✅ Answer: C
+
+
+
+
+
+
+
+
+
+
+
+
+7. Which scope is used for dependencies needed only during testing?
+
+A. compile
+B. provided
+C. runtime
+D. test
+
+✅ Answer: D
+
+
+
+
+
+
+
+
+
+
+
+
+8. Which command installs the package into the local repository?
+
+A. mvn deploy
+B. mvn package
+C. mvn install
+D. mvn clean
+
+✅ Answer: C
+
+
+
+
+
+
+
+
+9. What is the default packaging type for a Maven project?
+
+A. war
+B. jar
+C. ear
+D. pom
+
+✅ Answer: B
+
+
+
+
+
+
+
+
+
+
+
+10. Which plugin is used to create a JAR file in Maven?
+
+A. maven-compiler-plugin
+B. maven-surefire-plugin
+C. maven-jar-plugin
+D. maven-clean-plugin
+
+✅ Answer: C
+
+
+
+Basic Maven Commands
+---------------------------------------------
+1. mvn clean
+
+	Deletes the target/ directory (removes old build files).
+
+	mvn clean
+
+2. mvn compile
+
+	Compiles the source code of the project.
+
+	mvn compile
+
+3. mvn test
+
+	Runs unit tests using a testing framework (like JUnit).
+
+	mvn test
+
+4. mvn package
+
+	Compiles code, runs tests, and packages the project (JAR/WAR).
+
+	mvn package
+
+5. mvn install
+
+	Packages the project and installs it into the local repository.
+
+	mvn install
+
+6. mvn deploy
+
+	Deploys the packaged project to a remote repository.
+
+	mvn deploy
+
+Project Setup Commands
+7. mvn archetype:generate
+
+	Creates a new Maven project from a template.
+
+	mvn archetype:generate
+
+8. mvn validate
+
+	Checks whether the project structure is correct.
+
+	mvn validate
+
+Dependency & Info Commands
+9. mvn dependency:tree
+
+	Displays the project dependency tree.
+
+	mvn dependency:tree
+
+10. mvn dependency:list
+
+Lists all project dependencies.
+
+mvn dependency:list
+
+11. mvn help:effective-pom
+
+	Shows the final POM after inheritance and defaults.
+
+	mvn help:effective-pom
+
+Clean + Build Combined
+12. mvn clean install
+
+	Cleans old build files and installs the new build.
+
+	mvn clean install
+
+Common Maven Lifecycles
+
+Clean → clean
+
+Default (Build) → compile, test, package, install, deploy
+
+Site → site
+
+Interview Tip
+
+Most commonly used in real projects:
+
+mvn clean
+mvn compile
+mvn test
+mvn package
+mvn install
+
+
+What is Maven?
+
+Apache Maven is a build automation and project management tool, mainly used for Java projects.
+
+It helps developers to:
+
+Build projects (compile, test, package, deploy)
+
+Manage dependencies (JAR files and libraries)
+
+Maintain a standard project structure
+
+Automate the build lifecycle
+
+Maven uses a configuration file called pom.xml (POM = Project Object Model) where:
+
+Project details are defined
+
+Dependencies are listed
+
+Plugins are configured
+
+Example:
+
+	mvn clean install
+
+
+This single command cleans, builds, tests, and installs the project.
+
+Key Features of Maven
+
+	a) Dependency management (automatic download from repositories)
+
+	b) Standard directory structure
+
+	c) Lifecycle-based build system
+
+	d) Plugin-based architecture
+
+	e) Strong community support
+
+Alternatives to Maven
+1. Gradle
+
+✅ Most popular alternative
+
+Uses Groovy or Kotlin DSL
+
+Faster builds (incremental builds & caching)
+
+More flexible and less verbose than Maven
+
+Used by Spring Boot and Android
+
+📌 Build file: build.gradle
+
+2. Ant
+
+Older build tool
+
+XML-based (like Maven but more manual)
+
+No built-in dependency management
+
+Requires custom scripting
+
+📌 Build file: build.xml
+
+3. Ivy
+
+Dependency management tool
+
+Often used with Ant
+
+Less popular today
+
+4. Bazel
+
+Developed by Google
+
+Very fast and scalable
+
+Used for large, complex projects
+
+Language-agnostic
+
+5. SBT (Scala Build Tool)
+
+Mainly for Scala projects
+
+Interactive build tool
+
+Supports incremental compilation
+
+Comparison Table
+	Feature				Maven			Gradle				Ant
+	Configuration		XML (pom.xml)	Groovy/Kotlin DSL	XML
+	Dependency Mgmt		Yes				Yes					No
+	Build Speed			Moderate		Fast				Slow
+	Flexibility			Medium			High				High
+	Popularity			Very High		Very High			Low
+	
+Which One Should You Use?
+
+Maven → Stable, standard, easy to learn
+
+Gradle → Faster, modern, flexible
+
+Ant → Legacy projects
+
+Bazel → Large-scale systems
+
+Interview One-Liner
+
+Maven is a build automation and dependency management tool for Java projects; Gradle and Ant are its main alternatives.

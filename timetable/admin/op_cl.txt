@@ -1,0 +1,82 @@
+WITH DateSeries AS (
+    SELECT 
+        DATE '2024-07-07' + INTERVAL n DAY AS report_date
+    FROM 
+        (SELECT @rownum := @rownum + 1 AS n
+         FROM (SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4) t1,
+              (SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4) t2,
+              (SELECT @rownum := -1) t3
+         LIMIT 62) numbers
+),
+Purchases AS (
+    SELECT 
+        pi.itemid,
+        pi.purchase_date AS date,
+        SUM(pi.quantity) AS purchase_quantity,
+        SUM(pi.quantity * pi.rate) AS purchase_cost
+    FROM 
+        purchaseitem pi
+    WHERE 
+        pi.purchase_date BETWEEN '2024-07-07' AND '2024-09-06'
+        AND pi.itemid = '126'
+    GROUP BY 
+        pi.itemid, pi.purchase_date
+),
+Issues AS (
+    SELECT 
+        ii.itemid,
+        ii.issue_date AS date,
+        SUM(ii.quantity) AS issue_quantity,
+        SUM(ii.quantity * ii.unit_price) AS issue_cost
+    FROM 
+        issueitem ii
+    WHERE 
+        ii.issue_date BETWEEN '2024-07-07' AND '2024-09-06'
+        AND ii.itemid = '126'
+    GROUP BY 
+        ii.itemid, ii.issue_date
+),
+Balances AS (
+    SELECT 
+        ds.report_date,
+        COALESCE(SUM(p.purchase_quantity), 0) AS total_purchase_qty,
+        COALESCE(SUM(p.purchase_cost), 0) AS total_purchase_cost,
+        COALESCE(SUM(i.issue_quantity), 0) AS total_issue_qty,
+        COALESCE(SUM(i.issue_cost), 0) AS total_issue_cost
+    FROM 
+        DateSeries ds
+    LEFT JOIN 
+        Purchases p ON ds.report_date = p.date
+    LEFT JOIN 
+        Issues i ON ds.report_date = i.date
+    GROUP BY 
+        ds.report_date
+),
+CumulativeBalances AS (
+    SELECT 
+        report_date,
+        total_purchase_qty,
+        total_purchase_cost,
+        total_issue_qty,
+        total_issue_cost,
+        @opening_balance := COALESCE(@closing_balance, 0) AS opening_balance,
+        (@closing_balance := @opening_balance + total_purchase_qty - total_issue_qty) AS closing_balance
+    FROM 
+        Balances
+    CROSS JOIN 
+        (SELECT @opening_balance := 0, @closing_balance := 0) vars
+    ORDER BY 
+        report_date
+)
+SELECT 
+    report_date,
+    opening_balance,
+    total_purchase_qty AS purchase_quantity,
+    total_purchase_cost AS purchase_cost,
+    total_issue_qty AS issue_quantity,
+    total_issue_cost AS issue_cost,
+    closing_balance
+FROM 
+    CumulativeBalances
+ORDER BY 
+    report_date;

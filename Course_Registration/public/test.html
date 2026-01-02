@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>LifeCanvas — Personal Productivity Dashboard</title>
+  <meta name="description" content="LifeCanvas — a responsive personal productivity dashboard (single-file HTML/CSS/JS)." />
+
+  <style>
+    :root{
+      --bg:#f6f8fb; --card:#ffffff; --muted:#6b7280; --accent:#3b82f6; --success:#16a34a; --danger:#ef4444; --glass: rgba(255,255,255,0.6);
+    }
+    [data-theme='dark']{
+      --bg:#0b1220; --card:#0f1724; --muted:#9aa4b2; --accent:#60a5fa; --success:#34d399; --danger:#fb7185; --glass: rgba(255,255,255,0.03);
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Inter,Segoe UI,Roboto,system-ui,Arial;background:var(--bg);color:var(--muted)}
+
+    .app{min-height:100vh;display:flex;align-items:stretch;padding:24px}
+    .container{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 360px;gap:20px;width:100%}
+
+    /* Left column */
+    .panel{background:linear-gradient(180deg,transparent,transparent),var(--card);border-radius:14px;padding:18px;box-shadow:0 6px 18px rgba(2,6,23,0.08);}
+    header.app-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+    .brand{display:flex;gap:12px;align-items:center}
+    .logo{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#06b6d4);display:flex;align-items:center;justify-content:center;color:white;font-weight:700}
+    .title{font-size:18px;color:var(--muted);font-weight:600}
+    .subtitle{font-size:12px;color:var(--muted)}
+
+    .controls{display:flex;gap:8px;align-items:center}
+    .search{padding:8px 10px;border-radius:8px;border:1px solid rgba(0,0,0,0.06);min-width:220px}
+    .btn{padding:8px 12px;border-radius:8px;background:var(--accent);color:white;border:none;cursor:pointer}
+    .icon-btn{background:transparent;border:1px solid rgba(0,0,0,0.06);padding:8px;border-radius:8px;cursor:pointer}
+
+    /* Task input */
+    .add-box{display:flex;gap:10px;margin:12px 0}
+    .add-box input[type='text']{flex:1;padding:12px;border-radius:10px;border:1px solid rgba(0,0,0,0.06)}
+    .add-box .small{width:110px}
+
+    /* Task list */
+    .task-list{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+    .task{display:flex;align-items:center;gap:12px;padding:12px;border-radius:10px;background:var(--glass);border:1px solid rgba(0,0,0,0.03);transition:transform .16s ease,opacity .18s ease}
+    .task.dragging{opacity:.6;transform:scale(.995)}
+    .task .left{display:flex;align-items:center;gap:12px;flex:1}
+    .checkbox{width:18px;height:18px;border:2px solid var(--accent);border-radius:4px;display:inline-grid;place-items:center;cursor:pointer}
+    .checkbox.checked{background:linear-gradient(90deg,var(--accent),#06b6d4);border:none;color:white}
+    .task-title{font-weight:600;color:var(--muted)}
+    .task-desc{font-size:13px;color:var(--muted);opacity:.8}
+    .task-actions{display:flex;gap:8px}
+    .pill{font-size:12px;padding:4px 8px;border-radius:8px;background:rgba(0,0,0,0.04)}
+
+    /* Right column */
+    .side{display:flex;flex-direction:column;gap:12px}
+    .progress-card{display:flex;flex-direction:column;align-items:center;gap:10px;padding:18px;text-align:center}
+    .progress-ring{width:120px;height:120px}
+    .stats{display:flex;gap:10px;justify-content:center}
+    .stat{display:flex;flex-direction:column;align-items:center;padding:8px}
+    .quote{font-size:13px;color:var(--muted);padding:12px;border-radius:10px;background:var(--glass)}
+
+    /* Responsive */
+    @media (max-width:980px){
+      .container{grid-template-columns:1fr;}
+      .side{order:2}
+    }
+
+    /* Small animations */
+    .fade-in{animation:fade .28s ease}
+    @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+    /* Edit modal */
+    .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(2,6,23,0.4)}
+    .modal.open{display:flex}
+    .modal .card{width:720px;max-width:95%}
+
+    /* footer */
+    footer{margin-top:14px;color:var(--muted);font-size:13px;text-align:center}
+
+  </style>
+</head>
+<body data-theme="light">
+  <div class="app">
+    <div class="container">
+
+      <!-- LEFT: Tasks -->
+      <section class="panel" aria-labelledby="main-title">
+        <header class="app-header">
+          <div class="brand">
+            <div class="logo">LC</div>
+            <div>
+              <div class="title" id="main-title">LifeCanvas</div>
+              <div class="subtitle">Your daily productivity dashboard</div>
+            </div>
+          </div>
+
+          <div class="controls">
+            <input id="search" class="search" placeholder="Search tasks..." aria-label="Search tasks">
+            <button id="themeToggle" class="icon-btn" title="Toggle theme">🌙</button>
+            <button id="clearAll" class="icon-btn" title="Clear all tasks">🗑️</button>
+          </div>
+        </header>
+
+        <div>
+          <form id="taskForm" class="add-box" onsubmit="return false;">
+            <input id="taskInput" type="text" placeholder="Add a new task (title)" required aria-label="Task title">
+            <input id="prioInput" class="small" type="text" placeholder="Tag (optional)" aria-label="task tag">
+            <button id="addBtn" class="btn">Add</button>
+          </form>
+
+          <div class="task-list" id="taskList" aria-live="polite"></div>
+
+          <footer>
+            Built with ❤️ — LifeCanvas
+          </footer>
+        </div>
+      </section>
+
+      <!-- RIGHT: Summary -->
+      <aside class="side">
+        <div class="panel progress-card">
+          <h3 style="margin:0;color:var(--muted)">Today's Progress</h3>
+          <svg class="progress-ring" id="ring" viewBox="0 0 120 120" aria-hidden="true"></svg>
+          <div class="stats">
+            <div class="stat">
+              <div id="totalCount" style="font-weight:700;color:var(--muted)">0</div>
+              <div style="font-size:12px;color:var(--muted)">Tasks</div>
+            </div>
+            <div class="stat">
+              <div id="doneCount" style="font-weight:700;color:var(--muted)">0</div>
+              <div style="font-size:12px;color:var(--muted)">Done</div>
+            </div>
+          </div>
+          <div style="width:100%">
+            <div class="quote" id="quote">"Small steps every day lead to big changes."</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h4 style="margin-top:4px">Quick Actions</h4>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button id="sortBtn" class="btn">Sort: Pending first</button>
+            <button id="exportBtn" class="icon-btn">Export</button>
+          </div>
+          <hr style="margin:12px 0">
+          <div>
+            <strong>Tips</strong>
+            <ul style="padding-left:18px;color:var(--muted)">
+              <li>Use the tag field for categories (Work, Study, Home)</li>
+              <li>Drag tasks to rearrange</li>
+              <li>Toggle theme with the moon icon</li>
+            </ul>
+          </div>
+        </div>
+      </aside>
+
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
+      <div class="card panel">
+        <h3>Edit Task</h3>
+        <form id="editForm" onsubmit="return false;">
+          <input id="editTitle" type="text" style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(0,0,0,0.06);margin-bottom:8px">
+          <input id="editTag" type="text" style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(0,0,0,0.06);margin-bottom:12px" placeholder="Tag (optional)">
+          <div style="display:flex;gap:8px;justify-content:flex-end">
+            <button id="cancelEdit" class="icon-btn">Cancel</button>
+            <button id="saveEdit" class="btn">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    /* ========= LifeCanvas — single file JS ========= */
+    const LS_KEY = 'lifecanvas.tasks.v1';
+    const THEME_KEY = 'lifecanvas.theme.v1';
+
+    // State
+    let tasks = []; // {id,title,tag,done,created,order}
+    let dragSrc = null;
+
+    // Elements
+    const taskList = document.getElementById('taskList');
+    const taskForm = document.getElementById('taskForm');
+    const taskInput = document.getElementById('taskInput');
+    const prioInput = document.getElementById('prioInput');
+    const addBtn = document.getElementById('addBtn');
+    const totalCount = document.getElementById('totalCount');
+    const doneCount = document.getElementById('doneCount');
+    const ring = document.getElementById('ring');
+    const quote = document.getElementById('quote');
+    const themeToggle = document.getElementById('themeToggle');
+    const clearAll = document.getElementById('clearAll');
+    const search = document.getElementById('search');
+    const sortBtn = document.getElementById('sortBtn');
+    const exportBtn = document.getElementById('exportBtn');
+
+    const editModal = document.getElementById('editModal');
+    const editTitle = document.getElementById('editTitle');
+    const editTag = document.getElementById('editTag');
+    const saveEdit = document.getElementById('saveEdit');
+    const cancelEdit = document.getElementById('cancelEdit');
+
+    let editingId = null;
+
+    /* ---------- Utility ---------- */
+    const uid = ()=> Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+
+    function load(){
+      try{
+        const raw = localStorage.getItem(LS_KEY);
+        tasks = raw ? JSON.parse(raw) : [];
+      }catch(e){ tasks = []; }
+      const theme = localStorage.getItem(THEME_KEY) || 'light';
+      document.body.setAttribute('data-theme', theme);
+      themeToggle.textContent = theme === 'light' ? '🌙' : '☀️';
+    }
+    function save(){ localStorage.setItem(LS_KEY, JSON.stringify(tasks)); }
+
+    function addTask(title, tag){
+      const t = { id: uid(), title: title.trim(), tag: tag?tag.trim(): '', done:false, created:Date.now(), order: tasks.length };
+      tasks.push(t); save(); render();
+      showQuoteIfNeeded();
+    }
+
+    function updateTask(id, fields){
+      const it = tasks.find(t=>t.id===id); if(!it) return; Object.assign(it, fields); save(); render();
+    }
+
+    function deleteTask(id){ tasks = tasks.filter(t=>t.id!==id); save(); render(); }
+
+    function clearAllTasks(){ if(!confirm('Clear all tasks?')) return; tasks = []; save(); render(); }
+
+    function exportTasks(){ const data = JSON.stringify(tasks, null, 2); const blob = new Blob([data],{type:'application/json'}); const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='lifecanvas-tasks.json'; a.click(); URL.revokeObjectURL(url); }
+
+    /* ---------- Rendering ---------- */
+    function render(filter=''){
+      // sort by order
+      tasks.sort((a,b)=> (a.order||0)-(b.order||0));
+      taskList.innerHTML='';
+      const q = filter.trim().toLowerCase();
+      let total = 0, done = 0;
+      tasks.forEach(task=>{
+        if(q){
+          const hay = (task.title + ' ' + (task.tag||'')).toLowerCase();
+          if(!hay.includes(q)) return;
+        }
+        total++;
+        if(task.done) done++;
+
+        const el = document.createElement('div');
+        el.className='task fade-in';
+        el.setAttribute('draggable','true');
+        el.dataset.id = task.id;
+
+        el.innerHTML = `
+          <div class="left">
+            <div class="checkbox ${task.done? 'checked':''}" data-action="toggle"></div>
+            <div style="flex:1">
+              <div class="task-title">${escapeHtml(task.title)}</div>
+              ${task.tag?`<div class="task-desc">${escapeHtml(task.tag)}</div>`:''}
+            </div>
+          </div>
+          <div class="task-actions">
+            <div class="pill">${task.done? 'Completed':'Pending'}</div>
+            <button class="icon-btn" data-action="edit" title="Edit">✏️</button>
+            <button class="icon-btn" data-action="delete" title="Delete">🗑️</button>
+          </div>
+        `;
+
+        // Events
+        el.querySelector('[data-action="toggle"]').addEventListener('click',()=>{
+          updateTask(task.id, {done: !task.done});
+        });
+        el.querySelector('[data-action="edit"]').addEventListener('click',()=>openEdit(task.id));
+        el.querySelector('[data-action="delete"]').addEventListener('click',()=>{
+          if(confirm('Delete this task?')) deleteTask(task.id);
+        });
+
+        // Drag handlers
+        el.addEventListener('dragstart', (e)=>{
+          dragSrc = task.id;
+          el.classList.add('dragging');
+          e.dataTransfer.effectAllowed = 'move';
+        });
+        el.addEventListener('dragend', ()=>{ el.classList.remove('dragging'); dragSrc = null; save(); render(search.value); });
+
+        el.addEventListener('dragover', (e)=>{ e.preventDefault(); e.dataTransfer.dropEffect = 'move'; });
+        el.addEventListener('drop', (e)=>{ e.preventDefault(); const destId = task.id; if(!dragSrc || dragSrc===destId) return; reorder(dragSrc, destId); });
+
+        taskList.appendChild(el);
+      });
+
+      totalCount.textContent = total;
+      doneCount.textContent = done;
+      renderRing(total, done);
+    }
+
+    function reorder(fromId, toId){
+      const fromIndex = tasks.findIndex(t=>t.id===fromId);
+      const toIndex = tasks.findIndex(t=>t.id===toId);
+      if(fromIndex<0||toIndex<0) return;
+      const [item] = tasks.splice(fromIndex,1);
+      tasks.splice(toIndex,0,item);
+      // update order
+      tasks.forEach((t,i)=> t.order = i);
+      save(); render(search.value);
+    }
+
+    function renderRing(total, done){
+      const pct = total===0?0: Math.round((done/total)*100);
+      // simple circular ring using SVG
+      const r=52, c=2*Math.PI*r;
+      ring.innerHTML = `
+        <defs><linearGradient id="g1" x1="0%" x2="100%"><stop offset="0%" stop-color="var(--accent)"/><stop offset="100%" stop-color="#06b6d4"/></linearGradient></defs>
+        <circle cx="60" cy="60" r="${r}" stroke="rgba(0,0,0,0.06)" stroke-width="12" fill="none"></circle>
+        <circle cx="60" cy="60" r="${r}" stroke="url(#g1)" stroke-width="12" fill="none" stroke-dasharray="${c}" stroke-dashoffset="${c-(pct/100*c)}" transform="rotate(-90 60 60)" stroke-linecap="round"></circle>
+        <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" style="font-size:18px;fill:var(--muted);font-weight:700">${pct}%</text>
+      `;
+    }
+
+    /* ---------- Edit modal ---------- */
+    function openEdit(id){ const t = tasks.find(x=>x.id===id); if(!t) return; editingId=id; editTitle.value = t.title; editTag.value = t.tag || ''; editModal.classList.add('open'); editModal.setAttribute('aria-hidden','false'); }
+    function closeEdit(){ editingId=null; editModal.classList.remove('open'); editModal.setAttribute('aria-hidden','true'); }
+
+    saveEdit.addEventListener('click', ()=>{
+      const v = editTitle.value.trim(); if(!v) return alert('Title cannot be empty'); updateTask(editingId, {title:v, tag: editTag.value.trim()}); closeEdit();
+    });
+    cancelEdit.addEventListener('click', (e)=>{ e.preventDefault(); closeEdit(); });
+
+    /* ---------- Search / Sort / Export ---------- */
+    search.addEventListener('input', ()=> render(search.value));
+    sortBtn.addEventListener('click', ()=>{
+      // toggle sorting: pending first / recent first
+      if(sortBtn.dataset.mode === 'pending'){ // toggle to recent
+        sortBtn.dataset.mode = 'recent'; sortBtn.textContent = 'Sort: Recent first';
+        tasks.sort((a,b)=> b.created - a.created);
+      }else{
+        sortBtn.dataset.mode = 'pending'; sortBtn.textContent = 'Sort: Pending first';
+        tasks.sort((a,b)=> (a.done - b.done) || (a.order - b.order));
+      }
+      tasks.forEach((t,i)=>t.order=i); save(); render(search.value);
+    });
+
+    exportBtn.addEventListener('click', exportTasks);
+
+    clearAll.addEventListener('click', clearAllTasks);
+
+    /* ---------- Theme ---------- */
+    themeToggle.addEventListener('click', ()=>{
+      const cur = document.body.getAttribute('data-theme') || 'light';
+      const next = cur==='light' ? 'dark' : 'light';
+      document.body.setAttribute('data-theme', next);
+      localStorage.setItem(THEME_KEY, next); themeToggle.textContent = next==='light' ? '🌙' : '☀️';
+    });
+
+    /* ---------- Form ---------- */
+    taskForm.addEventListener('submit', (e)=>{
+      e.preventDefault(); const title = taskInput.value; const tag = prioInput.value; if(!title.trim()) return; addTask(title, tag); taskInput.value=''; prioInput.value=''; taskInput.focus();
+    });
+
+    /* ---------- Quotes ---------- */
+    const quotes = [
+      "Small steps every day lead to big changes.",
+      "You've got this — one task at a time.",
+      "Progress, not perfection.",
+      "Start where you are. Use what you have. Do what you can.",
+      "The secret of getting ahead is getting started."
+    ];
+    function showRandomQuote(){ quote.textContent = quotes[Math.floor(Math.random()*quotes.length)]; }
+    function showQuoteIfNeeded(){ if(tasks.length>0 && tasks.filter(t=>t.done).length === tasks.length) { quote.textContent = '🎉 All tasks completed — great job!'; } else { showRandomQuote(); } }
+
+    /* ---------- Helpers ---------- */
+    function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    /* ---------- Init ---------- */
+    load(); render(); showRandomQuote();
+
+    // restore focus behaviour
+    taskInput.focus();
+
+    // keyboard shortcut: n to focus new task
+    window.addEventListener('keydown', (e)=>{ if(e.key==='n' && !e.metaKey && !e.ctrlKey){ taskInput.focus(); } });
+
+    // sample data for first time
+    if(!tasks || tasks.length===0){
+      addTask('Plan today\'s study session','Study');
+      addTask('Grocery shopping','Home');
+      addTask('Finish Lab assignment','Work');
+    }
+
+    // drag & drop: support touch? basic support via pointer events not included to keep file small
+
+  </script>
+
+  <!--
+    README (short)
+
+    LifeCanvas — single-file web app
+    - File: index.html (this file)
+    - Features: add/edit/delete tasks, mark complete, drag to reorder, localStorage persistence, dark/light theme, export JSON, search & sort, progress ring, motivational quotes
+    - How to run: open this file in a modern browser
+    - To split into separate files: copy <style> contents into css/style.css and <script> into js/app.js and link from HTML
+  -->
+</body>
+</html>

@@ -1,0 +1,128 @@
+<?php
+include("../html/dbconn.php");
+
+if (isset($_POST["submit_room"])) {
+    if ($_FILES["csv_file"]["error"] == 0) {
+        $filename = $_FILES["csv_file"]["tmp_name"];
+        $file = fopen($filename, "r");
+
+        // Skip the header row
+        fgetcsv($file);
+
+        $inserted = 0;
+        //INSERT INTO `room_tt`( `id`,`ay`, `sec_id`, `day_no`, `period`, `room_no`) 
+		
+        while (($row = fgetcsv($file)) !== false) {
+            $row = array_map('trim', $row);
+            
+            list($id,$ay, $sec_id,  $day_no, $period, $room_no) = $row;
+
+            $stmt = $dbconn->prepare("INSERT INTO `room_tt`(`ay`, `sec_id`, `day_no`, `period`, `room_no`) values( ?, ?, ?, ?, ?)");
+            $stmt->bind_param("siiis", $ay, $sec_id, $day_no, $period,  $room_no);
+
+            if ($stmt->execute()) {
+                $inserted++;
+            }
+        }
+
+        fclose($file);
+        echo "<div class='alert alert-success'>Successfully inserted $inserted records.</div>";
+    } else {
+        echo "<div class='alert alert-danger'>Error uploading file.</div>";
+    }
+}
+if (isset($_POST["submit_predefined"])) {
+    if ($_FILES["csv_file"]["error"] == 0) {
+        $filename = $_FILES["csv_file"]["tmp_name"];
+        $file = fopen($filename, "r");
+
+        // Skip the header row
+        fgetcsv($file);
+
+        $inserted = 0;
+        
+        while (($row = fgetcsv($file)) !== false) {
+            $row = array_map('trim', $row);            
+            list($id,$ay, $sec_id, $subject_code, $day_no, $st_period, $end_period, $staff_idno, $room_no, $slot_status) = $row;
+
+            $stmt = $dbconn->prepare("INSERT INTO predefined_timetable ( ay, sec_id, subject_code, day_no, st_period, end_period, staff_idno, room_no, slot_status)
+                                      VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->bind_param("sisiiissi",  $ay, $sec_id, $subject_code, $day_no, $st_period, $end_period, $staff_idno, $room_no, $slot_status);
+
+            if ($stmt->execute()) {
+                $inserted++;
+            }
+        }
+
+        fclose($file);
+        echo "<div class='alert alert-success'>Successfully inserted $inserted records.</div>";
+    } else {
+        echo "<div class='alert alert-danger'>Error uploading file.</div>";
+    }
+}
+
+if (isset($_POST["submit_subject_staff"])) {
+    if ($_FILES["csv_file"]["error"] == 0) {
+        $filename = $_FILES["csv_file"]["tmp_name"];
+        $file = fopen($filename, "r");
+
+        // Skip the header row
+        fgetcsv($file);
+
+        $inserted = 0;
+        
+        while (($row = fgetcsv($file)) !== false) {
+            $row = array_map('trim', $row);
+            // Assuming CSV columns are in this order:  ay, sec_id, subject_code, staff_idno, teaching_periods
+            list($id, $ay, $sec_id, $subject_code, $staff_idno, $teaching_periods) = $row;
+
+            // Prepare and execute insert query
+            $stmt = $dbconn->prepare("INSERT INTO subject_staff_mapping ( ay, sec_id, subject_code, staff_idno, teaching_periods) VALUES (?, ?, ?, ?, ?)");
+            $stmt->bind_param("sissi", $ay, $sec_id, $subject_code, $staff_idno, $teaching_periods);
+
+            if ($stmt->execute()) {
+                $inserted++;
+            }
+        }
+
+        fclose($file);
+        echo "<div class='alert alert-success'>Successfully inserted $inserted records.</div>";
+    } else {
+        echo "<div class='alert alert-danger'>Error uploading file.</div>";
+    }
+}
+?>
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Upload  CSV</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body class="container mt-5">
+    <h2>Upload Rooms Details</h2>
+    <form method="post" enctype="multipart/form-data">
+        <div class="form-group">
+            <label>Select CSV File:</label>
+            <input type="file" name="csv_file" accept=".csv" class="form-control" required>
+        </div>
+        <button type="submit" name="submit_room" class="btn btn-primary">Upload Rooms</button>
+    </form>
+	<h2>Upload Predefined</h2>
+    <form method="post" enctype="multipart/form-data">
+        <div class="form-group">
+            <label>Select CSV File:</label>
+            <input type="file" name="csv_file" accept=".csv" class="form-control" required>
+        </div>
+        <button type="submit" name="submit_predefined" class="btn btn-primary">Upload Predefined</button>
+    </form>
+	<h2>Upload subject staff mapping</h2>
+    <form method="post" enctype="multipart/form-data">
+        <div class="form-group">
+            <label>Select CSV File:</label>
+            <input type="file" name="csv_file" accept=".csv" class="form-control" required>
+        </div>
+        <button type="submit" name="submit_subject_staff" class="btn btn-primary">Upload subject_staff</button>
+    </form>
+</body>
+</html>

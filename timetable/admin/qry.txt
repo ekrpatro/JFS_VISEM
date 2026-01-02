@@ -1,0 +1,303 @@
+/*
+CREATE TABLE subject_staff_mapping AS
+SELECT 
+    t1.`ay`,  
+    t1.`sec_id`, 
+    t3.`subject_code`, 
+    t2.`staff_idno` 
+FROM 
+    `subject_mapping` t1 
+LEFT JOIN  
+    staff t2 ON t1.staff_id = t2.staff_id 
+LEFT JOIN 
+    subjects t3 ON t3.subject_id = t1.subject_id 
+WHERE 
+    t1.ay = '2024-25';
+
+*/
+
+
+SELECT `ct_no`, `staff_idno`, `day_no`, `sec_id`, `sem`, `st_hour`, `end_hour`, `subject_code`, `room_no`, `duration`, `ay` FROM `class_timetable` WHERE 1 
+               
+SELECT `staff_id`, `staff_idno`,`dept_id`,  `staff_type`, `possision` FROM `staff` WHERE 1    
+			   
+SELECT `sec_id`, `sec_code`, `sec_name`, `possision`, `dept_id`, `sem`, `section`, `course_id` FROM `sec` WHERE 1
+//for odd sem free slots for given ay and day_no 
+$sql = "
+SELECT 
+    f.staff_idno,
+    f.staff_name,
+    (
+        SELECT COUNT(*) 
+        FROM class_timetable t2
+        WHERE t2.ay = '2025-26'
+          AND t2.sem IN (1, 3, 5, 7)
+          AND t2.sec_id IN (
+              SELECT sec_id FROM sec WHERE dept_id = 4
+          )
+          AND CONCAT('/', t2.staff_idno, '/') LIKE CONCAT('%/', f.staff_idno, '/%')
+    ) AS total_allotted_periods
+FROM 
+    staff f
+WHERE 
+    f.possision = 'Active'
+    AND f.staff_type = 'Teaching'
+    AND f.dept_id = 4
+    AND f.staff_idno NOT IN (
+        SELECT DISTINCT TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(t.staff_idno, '/', numbers.n), '/', -1)) AS staff_idno
+        FROM class_timetable t
+        JOIN (
+            SELECT 1 AS n UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 
+            UNION SELECT 5 UNION SELECT 6 UNION SELECT 7
+        ) numbers
+        ON CHAR_LENGTH(t.staff_idno) - CHAR_LENGTH(REPLACE(t.staff_idno, '/', '')) >= numbers.n - 1
+        WHERE t.day_no = 1
+          AND t.ay = '2025-26'
+          AND t.sem IN (1, 3, 5, 7)
+          AND t.sec_id IN (
+              SELECT sec_id FROM sec WHERE dept_id = 4
+          )
+    )
+ORDER BY 
+    f.staff_idno;
+";
+
+	
+	
+
+delete from subject_staff_mapping where ay='2025-26' and sec_id in(select sec_id from sec where dept_id=2);
+
+delete from room_tt where ay='2025-26' and sec_id in(select sec_id from sec where dept_id=2);
+
+
+delete from predefined_timetable where ay='2025-26' and sec_id in(select sec_id from sec where dept_id=2);
+
+delete from timetable where ay='2025-26' and sec_id in(select sec_id from sec where dept_id=2);
+
+DEPT  DEPT_ID
+-------------
+CIVIL	-	1
+EEE		-	2
+MECH	-	3
+ECE		-	4
+CSE		-	5
+IT		-	6
+AERO	- 	7
+
+AIML	-	34
+DS		-	35
+CS		-	36
+CSIT	-	37
+
+//update room_no in timetable
+
+UPDATE timetable t
+JOIN room_tt r
+  ON t.ay = r.ay
+  AND t.sec_id = r.sec_id
+  AND t.day_no = r.day_no
+  AND t.st_hour = r.period
+SET t.room_no = r.room_no;
+
+//publish the TIMETABLE of sec_id=9(civil-iii) and ay=2025-26
+
+// SELECT `ct_no`, `staff_idno`, `day_no`, `sec_id`, `sem`, `st_hour`, `end_hour`, `subject_code`, `room_no`, `duration`, `ay` FROM `class_timetable` WHERE 1
+
+
+  INSERT INTO class_timetable (
+    ct_no, staff_idno, day_no, sec_id, sem,
+    st_hour, end_hour, subject_code, room_no,
+    duration, ay
+)
+  SELECT 
+    t.ct_no,
+    grouped.staff_ids,
+    t.day_no,
+    t.sec_id,
+    t.sem,
+    t.st_hour,
+    t.end_hour,
+    t.subject_code,
+    t.room_no,
+    t.duration,
+    t.ay
+FROM timetable t
+JOIN (
+    SELECT
+        ay,
+        sec_id,
+        day_no,
+        st_hour,
+        GROUP_CONCAT(DISTINCT staff_idno ORDER BY staff_idno SEPARATOR '/') AS staff_ids
+    FROM timetable
+    GROUP BY ay, sec_id, day_no, st_hour
+) AS grouped
+ON t.ay = grouped.ay
+   AND t.sec_id = grouped.sec_id
+   AND t.day_no = grouped.day_no
+   AND t.st_hour = grouped.st_hour
+   
+WHERE t.sec_id = 9 AND t.ay = '2025-26';
+
+   
+   
+
+//publish subject_mapping
+
+INSERT THE DATA INTO  subject_mapping
+
+(SELECT `ay`, `sem`, `dept_id`, `sec_id`, `subject_id`, `staff_id` FROM `subject_mapping` WHERE 1)
+
+
+INSERT INTO subject_mapping (`ay`, `sem`, `dept_id`, `sec_id`, `subject_id`, `staff_id`)
+SELECT 
+    ssm.ay,
+    sec.sem,
+    sec.dept_id,
+    ssm.sec_id,
+    sub.subject_id,
+    stf.staff_id
+FROM subject_staff_mapping ssm
+JOIN staff stf ON ssm.staff_idno = stf.staff_idno
+JOIN sec ON ssm.sec_id = sec.sec_id
+JOIN subjects sub ON ssm.subject_code = sub.subject_code;
+
+
+
+
+retrieve the data from subject_staff_mapping,sec,subjects,staff
+(
+SELECT  `ay`, `sec_id`, `subject_code`, `staff_idno`, `teaching_periods` FROM `subject_staff_mapping` WHERE 1
+
+SELECT `staff_id`, `staff_idno`, `dept_id` FROM `staff` WHERE 1
+SELECT `sec_id`,  `dept_id`, `sem` FROM `sec` WHERE 1
+
+
+SELECT `subject_id`, `subject_code` FROM `subjects` WHERE 1
+)
+do necessary joins and insert into subject_mapping
+
+
+SELECT 
+    ssm.id AS ssm_id,
+    ssm.ay,
+    ssm.sec_id,
+    ssm.subject_code,
+    ssm.staff_idno,
+    ssm.teaching_periods,   
+    
+    pt.day_no,
+    pt.st_period,
+    pt.end_period,
+    pt.room_no,   
+    pt.faculty_type
+
+FROM 
+    subject_staff_mapping ssm
+LEFT JOIN 
+    predefined_timetable pt
+    ON  ssm.ay = pt.ay
+    AND ssm.sec_id = pt.sec_id
+    AND ssm.subject_code = pt.subject_code
+    AND ssm.staff_idno = pt.staff_idno
+
+WHERE 
+    ssm.ay = '2025-26'      -- 🔁 change this to your desired academic year
+    AND ssm.sec_id = 201    -- 🔁 change this to your section ID
+
+ORDER BY 
+    ssm.subject_code, ssm.staff_idno, pt.day_no, pt.st_period;
+	
+	
+	
+	// find the count pat class allotted to staff_idno with sec_id
+	SELECT COUNT(*) AS total_rows
+FROM class_timetable cs
+JOIN pat_slots ps 
+    ON cs.sec_id = ps.sec_id
+    AND cs.day_no = ps.day_no
+    AND cs.ay = ps.ay
+    AND cs.st_hour = ps.period
+WHERE 
+    cs.staff_idno LIKE '%iare10626%' 
+    AND cs.sec_id = 383;
+
+
+//staff with pat_load_cnt
+
+SELECT 
+            cs.staff_idno,
+            COUNT(*) AS pat_load_cnt
+        FROM 
+            class_timetable cs
+        JOIN 
+            pat_slots ps
+            ON cs.sec_id = ps.sec_id
+            AND cs.day_no = ps.day_no
+            AND cs.ay = ps.ay
+            AND cs.st_hour = ps.period
+        WHERE 
+            cs.staff_idno IS NOT NULL
+			and cs.ay='".$ay."'
+			and cs.sec_id in (select sec_id from sec where sem in (1,3,5,7))
+        GROUP BY 
+            cs.staff_idno
+			
+			
+//period wise absentee queery
+SELECT 
+    s.sec_id,
+    s.sec_code,
+    s.dept_id,
+    s.registered_cnt,
+    s.current_sem,
+    COALESCE(a.p1_abs_count, 0) AS p1_abs_count,
+    COALESCE(a.p2_abs_count, 0) AS p2_abs_count,
+    COALESCE(a.p3_abs_count, 0) AS p3_abs_count,
+    COALESCE(a.p4_abs_count, 0) AS p4_abs_count,
+    COALESCE(a.p5_abs_count, 0) AS p5_abs_count,
+    COALESCE(a.p6_abs_count, 0) AS p6_abs_count
+FROM 
+(
+    SELECT 
+        s.sec_id,
+        ss.sec_code,
+        s.dept_id,
+        s.current_sem,
+        COUNT(*) AS registered_cnt
+    FROM 
+        student_master_attendance s
+    INNER JOIN 
+        sec ss ON ss.sec_id = s.sec_id
+    WHERE 
+        s.status = 'studying'
+        AND s.sec_id > 0
+        AND s.course_id = 1
+        AND s.current_sem = 3
+    GROUP BY 
+        s.sec_id
+) s
+LEFT JOIN 
+(
+    SELECT 
+        sec_id,
+        MAX(CASE WHEN period = 1 THEN FLOOR(LENGTH(REPLACE(absents, ',', '')) / 10) ELSE 0 END) AS p1_abs_count,
+        MAX(CASE WHEN period = 2 THEN FLOOR(LENGTH(REPLACE(absents, ',', '')) / 10) ELSE 0 END) AS p2_abs_count,
+        MAX(CASE WHEN period = 3 THEN FLOOR(LENGTH(REPLACE(absents, ',', '')) / 10) ELSE 0 END) AS p3_abs_count,
+        MAX(CASE WHEN period = 4 THEN FLOOR(LENGTH(REPLACE(absents, ',', '')) / 10) ELSE 0 END) AS p4_abs_count,
+        MAX(CASE WHEN period = 5 THEN FLOOR(LENGTH(REPLACE(absents, ',', '')) / 10) ELSE 0 END) AS p5_abs_count,
+        MAX(CASE WHEN period = 6 THEN FLOOR(LENGTH(REPLACE(absents, ',', '')) / 10) ELSE 0 END) AS p6_abs_count
+    FROM 
+        active
+    WHERE 
+        `date` = '2025-08-05'
+    GROUP BY 
+        sec_id
+) a ON s.sec_id = a.sec_id
+ORDER BY 
+    s.dept_id,
+    s.sec_id;
+
+
+
+

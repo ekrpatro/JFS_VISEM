@@ -1,0 +1,51 @@
+step1:
+	F:\JFS_VISEM\Maven_Projects>mvn archetype:generate -DgroupId=com.skillnext -DartifactId=PrimeNumberProj -DarchetypeArtifactId=maven-archetype-quickstart -DinteractiveMode=false
+
+step2:
+	F:\JFS_VISEM\Maven_Projects>cd PrimeNumberProj
+
+step3:
+F:\JFS_VISEM\Maven_Projects\PrimeNumberProj\src\main\java\com\skillnext>App.java
+
+edit  App.java
+package com.skillnext;
+
+/**
+ * Hello world!
+ *
+ */
+public class App 
+{
+	public static boolean check_prime(int n)
+	{
+		for(int i=2; i <= Math.sqrt(n); i++)
+		{
+			if(n % i ==0)
+				return false;
+		}
+		return true;
+		
+	}
+    public static void main( String[] args )
+    {
+        Scanner sc= new Scanner(System.in);
+		System.out.println("Enter a number ");
+		int n = sc.nextInt();
+		if(check_prime(n))
+		{
+			System.out.println("Num = "+n + " is prime");
+		}
+		else
+		{
+			System.out.println("Num = "+n + " is NOT prime");
+		}
+    }
+}
+
+
+step4 :
+F:\JFS_VISEM\Maven_Projects\PrimeNumberProj>mvn clean package
+
+step5 :
+(to run)
+F:\JFS_VISEM\Maven_Projects\PrimeNumberProj>mvn exec:java -Dexec.mainClass=com.skillnext.App
